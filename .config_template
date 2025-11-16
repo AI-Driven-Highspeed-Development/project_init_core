@@ -1,0 +1,6 @@
+{
+    "module_name": "project_init_core",
+    "path": {
+        "data": "./project/data/project_init_core"
+    }
+}
