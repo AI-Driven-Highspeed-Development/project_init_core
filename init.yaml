@@ -1,4 +1,6 @@
 version: 0.0.1
 folder_path: cores/project_init_core
 type: core
+repo_url: https://github.com/AI-Driven-Highspeed-Development/project_init_core.git
+
 requirements: []

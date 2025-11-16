@@ -1,6 +1,6 @@
 from managers.config_manager import ConfigManager
 
-class ProjectInitCore:
+class ProjectInit:
     
     def __init__(self):
         self.cm = ConfigManager()
