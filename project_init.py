@@ -89,19 +89,18 @@ class ProjectInit:
 
         workspace_path = self.project_root / f"{self.project_root.name}.code-workspace"
 
-        module_types = self.modules_controller.module_types.module_types
-        eligible_enums = {
-            module_type.enum
-            for module_type in module_types.values()
-            if module_type.shows_in_workspace
-        }
-
         folder_entries: list[dict[str, str]] = []
         seen_paths: set[str] = set()
 
         for module in report.modules:
-            if module.module_type.enum not in eligible_enums:
+            # Determine visibility: override > default
+            is_visible = module.shows_in_workspace
+            if is_visible is None:
+                is_visible = module.module_type.shows_in_workspace
+            
+            if not is_visible:
                 continue
+
             try:
                 relative_path = module.path.relative_to(self.project_root)
             except ValueError:

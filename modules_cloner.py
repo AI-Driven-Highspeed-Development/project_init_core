@@ -41,7 +41,7 @@ class ModulesCloner:
             self.module_type_paths[module_type.name.lower()] = module_type.path
             self.module_type_paths[module_type.plural_name.lower()] = module_type.path
 
-    def clone_from_project_init(self, *, max_workers: int = 4) -> List[ModuleCloneResult]:
+    def clone_from_project_init(self, *, max_workers: int = 8) -> List[ModuleCloneResult]:
         project_init_file = self.project_root / "init.yaml"
         yf = YamlReadingCore.read_yaml(project_init_file)
         if not yf:
