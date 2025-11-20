@@ -1,60 +1,65 @@
 # Project Init Core
 
-Tiny bootstrapper that reads project-level metadata from Config Manager and exposes it through a thin helper class.
+The bootstrapping engine for ADHD Framework projects. It handles module cloning, dependency resolution, and workspace initialization.
 
 ## Overview
-- Resolves the consolidated `.config` file via Config Manager on import
-- Surfaces `project_init_core` settings (module name, descriptions, etc.) through `ProjectInit`
-- Provides an example entry point for future project-specific initialization hooks
+- **Clones Modules**: Reads `init.yaml` to find required modules and clones them from Git.
+- **Resolves Dependencies**: Recursively finds and installs dependencies for all modules.
+- **Initializes Workspace**: Generates a VS Code workspace file (`.code-workspace`) including all relevant modules.
+- **Runs Initializers**: Executes `__init__.py` scripts for modules that require setup.
+- **Installs Requirements**: Finds and installs `requirements.txt` files (via `RequirementsInstaller`).
 
 ## Features
-- **Config-backed helper** – `ProjectInit` wires `ConfigManager` once and stores `self.config` for repeated access
-- **Utility method** – `display_module_name()` shows how to reach values defined under `project_init_core`
-- **Extendable skeleton** – add your own initialization helpers without re-plumbing ConfigManager each time
+- **Smart Cloning**: Uses `ModulesCloner` to efficiently clone repositories and prevent duplicates.
+- **Workspace Generation**: Automatically adds modules to the VS Code workspace based on visibility rules.
+- **Dependency Management**: Ensures all required modules are present before the project starts.
+- **Requirements Installation**: Scans the project for Python dependencies and installs them.
 
 ## Quickstart
 
 ```python
-from cores.project_init_core.project_init_core import ProjectInit
+from cores.project_init_core.project_init import ProjectInit
 
-init = ProjectInit()
-print(init.config.module_name)
-init.display_module_name()  # convenience logging helper
+# Initialize the project (clone modules, setup workspace, etc.)
+initializer = ProjectInit()
+report = initializer.init_project()
+
+print(f"Initialized {len(report)} modules.")
 ```
 
 ## API
 
 ```python
 class ProjectInit:
-	def __init__(self) -> None: ...  # wires ConfigManager and stores config slice
-	def display_module_name(self) -> None: ...  # prints the configured module name
+    def __init__(self, project_root: Optional[str | Path] = None) -> None: ...
+    def init_project(self) -> list[ModuleInfo]: ... # Main entry point
+    def init_workspace_file(self, modules_report: Optional[ModulesReport] = None) -> None: ...
+    def run_module_initializers(self, modules_report: Optional[ModulesReport] = None, ...) -> None: ...
 ```
 
-## Notes
-- This module is intentionally small; treat it as the recommended location for future project-level bootstrap helpers.
-- Access additional keys via `init.config.<nested_key>`; each node is a generated dataclass from Config Manager.
+## Requirements Installer
 
-## Requirements & prerequisites
-- Config Manager must be initialized (it’s handled automatically when you instantiate `ProjectInit`).
-- `.config` should contain a `project_init_core` section with a `module_name` key.
+This core also includes the `RequirementsInstaller` for managing Python packages.
 
-## Troubleshooting
-- **`AttributeError: project_init_core`** – regenerate `.config` using Config Manager so the section exists.
-- **Printed module name is blank** – populate `module_name` inside `.config` or your module template.
-- **Need additional bootstrap data** – extend `.config` + generated keys; the helper mirrors whatever you add.
+```python
+from cores.project_init_core.requirements_installer import RequirementsInstaller
+
+installer = RequirementsInstaller()
+installer.install_all() # Installs from all requirements.txt files
+```
 
 ## Module structure
 
 ```
 cores/project_init_core/
 ├─ __init__.py             # package marker
-├─ project_init_core.py    # ProjectInit helper
-├─ .config_template        # default config schema
+├─ project_init.py         # Main ProjectInit class
+├─ modules_cloner.py       # Git cloning logic
+├─ requirements_installer.py # pip install logic
 ├─ init.yaml               # module metadata
 └─ README.md               # this file
 ```
 
 ## See also
-- Config Manager – generates the typed config accessors consumed here
-- Modules Controller Core – inspects project modules once the project is initialized
-- Module Creator Core – scaffolds new modules that may hook into Project Init
+- Modules Controller Core – Used to scan and manage the modules after cloning.
+- Workspace Core – Used to build the VS Code workspace file.
