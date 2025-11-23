@@ -11,7 +11,6 @@ from cores.modules_controller_core.modules_controller import (
     ModulesReport,
 )
 from utils.logger_util.logger import Logger
-from cores.workspace_core.workspace_builder import WorkspaceBuilder, WorkspaceBuildingStep
 
 
 class ProjectInit:
@@ -83,58 +82,8 @@ class ProjectInit:
 
     def init_workspace_file(self, modules_report: Optional[ModulesReport] = None) -> None:
         """Generate a VS Code workspace file listing modules that should appear in the workspace."""
-        report = modules_report or self.modules_controller.list_all_modules()
-        if not report:
-            return
-
-        workspace_path = self.project_root / f"{self.project_root.name}.code-workspace"
-
-        folder_entries: list[dict[str, str]] = []
-        seen_paths: set[str] = set()
-
-        for module in report.modules:
-            # Determine visibility: override > default
-            is_visible = module.shows_in_workspace
-            if is_visible is None:
-                is_visible = module.module_type.shows_in_workspace
-            
-            if not is_visible:
-                continue
-
-            try:
-                relative_path = module.path.relative_to(self.project_root)
-            except ValueError:
-                self.logger.warning(
-                    f"Module path {module.path} is not under project root {self.project_root}. Skipping workspace entry."
-                )
-                continue
-            folder_path = f"./{relative_path.as_posix()}"
-            if folder_path not in seen_paths:
-                folder_entries.append({"path": folder_path})
-                seen_paths.add(folder_path)
-
-        if "." not in seen_paths:
-            folder_entries.append({"path": "."})
-
-        builder = WorkspaceBuilder(str(workspace_path))
-        builder.add_step(
-            WorkspaceBuildingStep(
-                target=[],
-                content={
-                    "folders": folder_entries,
-                    "settings": {
-                        "python.analysis.extraPaths": [
-                            "../../../",
-                            "../../",
-                            "../",
-                        ],
-                    },
-                },
-            )
-        )
-        workspace_data = builder.build_workspace()
-        builder.write_workspace(workspace_data)
-        self.logger.info(f"Workspace file created at {workspace_path}")
+        # Delegate to ModulesController which now handles this logic centrally
+        self.modules_controller.generate_workspace_file()
 
 
 __all__ = ["ProjectInit"]
