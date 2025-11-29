@@ -31,7 +31,7 @@ class ProjectInit:
         self.cloner.clone_from_project_init()
         report = self.cloner.modules_report or self.modules_controller.scan_all_modules()
         self.fix_repo_urls(report)
-        self._install_framework_cli()
+        self._install_framework_files()
         self.run_module_initializers(report, logger=self.logger)
         self.init_workspace_file(report)
         return report.modules if report else []
@@ -89,18 +89,19 @@ class ProjectInit:
         # Delegate to ModulesController which now handles this logic centrally
         self.modules_controller.generate_workspace_file()
 
-    def _install_framework_cli(self) -> None:
-        """Download adhd_framework.py from the configured repository."""
+    def _install_framework_files(self) -> None:
+        """Download adhd_framework.py and requirements.txt from the configured repository."""
         repo_url = self.config.framework_repo_url
         if not repo_url:
-            self.logger.info("No framework_repo_url configured; skipping adhd_framework.py installation.")
+            self.logger.info("No framework_repo_url configured; skipping framework files installation.")
             return
         
         try:
             api = GithubApi()
             repo = api.repo(repo_url)
-            content = repo.get_file("adhd_framework.py")
             
+            # Install adhd_framework.py
+            content = repo.get_file("adhd_framework.py")
             if content:
                 dest_file = self.project_root / "adhd_framework.py"
                 dest_file.write_text(content, encoding="utf-8")
@@ -114,9 +115,18 @@ class ProjectInit:
                 self.logger.info(f"✅ Installed adhd_framework.py to {dest_file}")
             else:
                 self.logger.error("adhd_framework.py not found in the repository or is empty.")
+
+            # Install requirements.txt
+            req_content = repo.get_file("requirements.txt")
+            if req_content:
+                req_dest = self.project_root / "requirements.txt"
+                req_dest.write_text(req_content, encoding="utf-8")
+                self.logger.info(f"✅ Installed requirements.txt to {req_dest}")
+            else:
+                self.logger.warning("requirements.txt not found in the repository.")
                 
         except Exception as e:
-            self.logger.error(f"Failed to install adhd_framework.py: {e}")
+            self.logger.error(f"Failed to install framework files: {e}")
 
 
 __all__ = ["ProjectInit"]
