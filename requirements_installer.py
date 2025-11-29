@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 from typing import List
 
-from cores.modules_controller_core.modules_controller import ModulesController
 from utils.logger_util.logger import Logger
 
 
@@ -15,40 +14,28 @@ class RequirementsInstaller:
     def __init__(self, project_root: Path | None = None) -> None:
         self.project_root = (project_root or Path.cwd()).resolve()
         self.logger = Logger(name="RequirementsInstaller")
-        self.modules_controller = ModulesController(self.project_root)
 
     def install_all(self) -> None:
-        """Find and install all requirements.txt files in modules and project root."""
-        requirements_files = self._collect_requirements_files()
+        """Find and install all requirements.txt files in the project root recursively."""
+        self.install(self.project_root)
 
-        if not requirements_files:
-            self.logger.info("No requirements.txt files found.")
+    def install(self, target_dir: Path) -> None:
+        """Find and install all requirements.txt files in the target directory recursively."""
+        target_path = target_dir.resolve()
+        if not target_path.exists() or not target_path.is_dir():
+            self.logger.warning(f"Target directory {target_path} does not exist or is not a directory.")
             return
 
-        self.logger.info(f"Found {len(requirements_files)} requirements.txt files to install.")
+        requirements_files = list(target_path.rglob("requirements.txt"))
+
+        if not requirements_files:
+            self.logger.debug(f"No requirements.txt files found in {target_path}.")
+            return
+
+        self.logger.info(f"Found {len(requirements_files)} requirements.txt files in {target_path} to install.")
 
         for req_file in requirements_files:
             self._install_file(req_file)
-
-    def _collect_requirements_files(self) -> List[Path]:
-        """Collect requirements.txt from root and all modules."""
-        files: List[Path] = []
-
-        # 1. Check root requirements.txt
-        root_req = self.project_root / "requirements.txt"
-        if root_req.exists() and root_req.is_file():
-            files.append(root_req)
-
-        # 2. Check modules
-        report = self.modules_controller.scan_all_modules()
-        for module in report.modules:
-            mod_req = module.path / "requirements.txt"
-            if mod_req.exists() and mod_req.is_file():
-                # Avoid duplicates if root is also a module (unlikely but possible)
-                if mod_req not in files:
-                    files.append(mod_req)
-
-        return files
 
     def _install_file(self, req_file: Path) -> None:
         """Install packages from a single requirements.txt file."""

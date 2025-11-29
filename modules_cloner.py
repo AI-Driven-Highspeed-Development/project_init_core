@@ -12,7 +12,9 @@ from cores.github_api_core.api import GithubApi, GithubRepo
 from cores.exceptions_core.adhd_exceptions import ADHDError
 from cores.yaml_reading_core.yaml_reading import YamlReadingCore
 from cores.creator_common_core.creator_common_core import remove_git_dir
+from cores.project_init_core.requirements_installer import RequirementsInstaller
 import re
+import sys
 
 @dataclass
 class ModuleCloneResult:
@@ -42,6 +44,10 @@ class ModulesCloner:
             self.module_type_paths[module_type.plural_name.lower()] = module_type.path
 
     def clone_from_project_init(self, *, max_workers: int = 8) -> List[ModuleCloneResult]:
+        # Check for venv
+        if not (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)):
+             raise ADHDError("Not running in a virtual environment. Please activate a venv before initializing modules.")
+
         project_init_file = self.project_root / "init.yaml"
         yf = YamlReadingCore.read_yaml(project_init_file)
         if not yf:
@@ -117,6 +123,11 @@ class ModulesCloner:
                     f"Cloning {module_name} ({module_type_name}) into {destination}"
                 )
                 repo.clone_repo(dest_path=str(destination))
+                
+                # Install requirements immediately after cloning
+                installer = RequirementsInstaller(self.project_root)
+                installer.install(destination)
+                
             except ADHDError as exc:
                 self.logger.error(f"Failed to clone {repo_url}: {exc}")
                 return None
