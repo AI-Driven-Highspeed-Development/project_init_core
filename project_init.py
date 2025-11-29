@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from managers.config_manager import ConfigManager
+from cores.github_api_core.api import GithubApi
 from cores.project_init_core.modules_cloner import ModulesCloner
 from cores.modules_controller_core.modules_controller import (
     ModuleInfo,
@@ -18,6 +19,8 @@ class ProjectInit:
 
     def __init__(self, project_root: Optional[str | Path] = None) -> None:
         self.logger = Logger(name=type(self).__name__)
+        self.cm = ConfigManager()
+        self.config = self.cm.config.project_init_core
         self.project_root = Path(project_root or Path.cwd()).resolve()
 
         self.modules_controller = ModulesController(self.project_root)
@@ -28,6 +31,7 @@ class ProjectInit:
         self.cloner.clone_from_project_init()
         report = self.cloner.modules_report or self.modules_controller.scan_all_modules()
         self.fix_repo_urls(report)
+        self._install_framework_cli()
         self.run_module_initializers(report, logger=self.logger)
         self.init_workspace_file(report)
         return report.modules if report else []
@@ -84,6 +88,35 @@ class ProjectInit:
         """Generate a VS Code workspace file listing modules that should appear in the workspace."""
         # Delegate to ModulesController which now handles this logic centrally
         self.modules_controller.generate_workspace_file()
+
+    def _install_framework_cli(self) -> None:
+        """Download adhd_framework.py from the configured repository."""
+        repo_url = self.config.framework_repo_url
+        if not repo_url:
+            self.logger.info("No framework_repo_url configured; skipping adhd_framework.py installation.")
+            return
+        
+        try:
+            api = GithubApi()
+            repo = api.repo(repo_url)
+            content = repo.get_file("adhd_framework.py")
+            
+            if content:
+                dest_file = self.project_root / "adhd_framework.py"
+                dest_file.write_text(content, encoding="utf-8")
+                
+                # Make executable
+                try:
+                    dest_file.chmod(dest_file.stat().st_mode | 0o111)
+                except Exception:
+                    pass # Ignore chmod errors on Windows etc.
+                
+                self.logger.info(f"✅ Installed adhd_framework.py to {dest_file}")
+            else:
+                self.logger.error("adhd_framework.py not found in the repository or is empty.")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to install adhd_framework.py: {e}")
 
 
 __all__ = ["ProjectInit"]

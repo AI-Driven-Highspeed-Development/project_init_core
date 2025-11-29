@@ -2,5 +2,6 @@
     "module_name": "project_init_core",
     "path": {
         "data": "./project/data/project_init_core"
-    }
+    },
+    "framework_repo_url": "https://github.com/AI-Driven-Highspeed-Development/ai_driven_highspeed_development_framework_bootstrapped"
 }
