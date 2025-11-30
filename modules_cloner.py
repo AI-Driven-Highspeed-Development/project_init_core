@@ -11,7 +11,6 @@ from utils.logger_util.logger import Logger
 from cores.github_api_core.api import GithubApi, GithubRepo
 from cores.exceptions_core.adhd_exceptions import ADHDError
 from cores.yaml_reading_core.yaml_reading import YamlReadingCore
-from cores.creator_common_core.creator_common_core import remove_git_dir
 from cores.project_init_core.requirements_installer import RequirementsInstaller
 import re
 import sys
@@ -131,7 +130,6 @@ class ModulesCloner:
             except ADHDError as exc:
                 self.logger.error(f"Failed to clone {repo_url}: {exc}")
                 return None
-            remove_git_dir(destination)
 
         result_obj = ModuleCloneResult(
             repo_url=canonical_url,
