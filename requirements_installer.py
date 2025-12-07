@@ -3,7 +3,6 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
 
 from utils.logger_util.logger import Logger
 
